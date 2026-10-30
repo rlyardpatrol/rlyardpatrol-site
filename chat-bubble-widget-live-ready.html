@@ -1,0 +1,118 @@
+<!--
+  Rocco & Lucky's Yard Patrol — chat bubble widget, LIVE-READY SNIPPET (draft, not deployed)
+  Prepared 2026-10-30 for John to approve before anything touches the live site.
+
+  HOW TO GO LIVE (needs John's go-ahead):
+  1. Paste this whole snippet just before </body> on the real landing page
+     (https://rlyardpatrol.netlify.app/) and put chat-bubble-dogs.jpg in the same
+     folder, OR point the two img src attributes at a hosted copy of that photo.
+  2. Confirm which GitHub repo the landing page deploys from. NOTE: the recon
+     notes name github.com/rlyardpatrol/fully-bookin-it as the BOOKING site's repo;
+     they do NOT name the landing page's repo — the demo page's note naming that
+     repo for the landing page is unconfirmed. Do not push until the repo is confirmed.
+  3. Test the lead form once with John's approval. The endpoint below is the booking
+     site's public leads function (from the 2026-10-30 architecture recon). It has NOT
+     been test-posted from this draft, on purpose: a test post would create a real
+     lead row in Supabase that the public API cannot delete (GET returns 403).
+
+  WHAT CHANGED vs. the approved demo (2026-10-30):
+  - Button wording is John's approved "Have RYLP call me" (changed 2026-10-30 12:01 UTC).
+  - Lead form now POSTs {name, phone, status:"new", source:"chat_bubble"} to the
+    booking site's leads function, instead of showing "Demo only — nothing was sent."
+  - On success it confirms and links to the instant quote. On failure it does NOT
+    swallow the lead: it tells the visitor to call/text 848-240-1938.
+  - All answers still use only Yard Patrol's real info (prices, towns, hours, phone).
+  - Nothing in this file has been pushed to GitHub or Netlify.
+-->
+<style>
+  #rl-bubble{position:fixed;right:20px;bottom:20px;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #ddd;border-radius:999px;padding:6px 16px 6px 6px;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;font-weight:700;z-index:1000;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  #rl-bubble img{width:52px;height:52px;border-radius:50%;object-fit:cover}
+  #rl-panel{position:fixed;right:20px;bottom:96px;width:min(360px,calc(100vw - 40px));background:#fff;border:1px solid #ddd;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.2);display:none;flex-direction:column;overflow:hidden;z-index:1000;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#222}
+  #rl-panel.open{display:flex}
+  #rl-head{background:#1f4d2e;color:#fff;padding:12px 14px;display:flex;gap:10px;align-items:center}
+  #rl-head img{width:44px;height:44px;border-radius:50%;object-fit:cover}
+  #rl-head small{opacity:.85}
+  #rl-msgs{padding:14px;height:300px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+  .m{max-width:85%;padding:10px 12px;border-radius:14px;line-height:1.5;font-size:14px}
+  .m.bot{background:#eef4ee;align-self:flex-start}.m.user{background:#1f4d2e;color:#fff;align-self:flex-end}
+  #rl-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
+  #rl-chips button{border:1px solid #cfe0cf;background:#f2f7f2;border-radius:999px;padding:6px 10px;cursor:pointer;font-size:13px}
+  #rl-form{border-top:1px solid #eee;padding:10px 14px 14px;display:flex;gap:8px}
+  #rl-form input{flex:1;padding:10px;border:1px solid #ccc;border-radius:10px}
+  #rl-form button{background:#1f4d2e;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700}
+  #rl-lead{border-top:1px solid #eee;padding:12px 14px;font-size:13px;line-height:1.5}
+  #rl-lead input{width:100%;box-sizing:border-box;margin:4px 0;padding:9px;border:1px solid #ccc;border-radius:8px}
+  #rl-lead button{width:100%;margin-top:6px;background:#c9a227;border:0;border-radius:10px;padding:10px;cursor:pointer;font-weight:700}
+</style>
+
+<button id="rl-bubble" aria-label="Open chat">
+  <img src="chat-bubble-dogs.jpg" alt="Rocco and Lucky">
+  <span>Question? Bark at us right here!</span>
+</button>
+
+<div id="rl-panel" role="dialog" aria-label="Chat with Rocco and Lucky's Yard Patrol">
+  <div id="rl-head">
+    <img src="chat-bubble-dogs.jpg" alt="Rocco and Lucky">
+    <div><strong>Rocco &amp; Lucky's Yard Patrol</strong><br><small>Woof — ask us anything! We reply during business hours.</small></div>
+  </div>
+  <div id="rl-msgs"></div>
+  <div id="rl-chips">
+    <button data-q="prices">Prices</button>
+    <button data-q="areas">Areas we cover</button>
+    <button data-q="how it works">How it works</button>
+    <button data-q="hours">Hours</button>
+    <button data-q="get a quote">Get a quote</button>
+  </div>
+  <form id="rl-form">
+    <input id="rl-input" placeholder="Ask about prices, towns, hours…" autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+  <div id="rl-lead">
+    <strong>Want us to follow up?</strong> Leave your name &amp; number and we'll bark back.
+    <input id="rl-name" placeholder="Your name">
+    <input id="rl-phone" placeholder="Phone number">
+    <button id="rl-lead-btn" type="button">Have RYLP call me</button>
+    <div id="rl-lead-done"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const msgs=document.getElementById('rl-msgs');
+function say(text,who){const d=document.createElement('div');d.className='m '+who;d.innerHTML=text;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function answer(q){
+  q=q.toLowerCase();
+  if(/price|cost|how much|charge/.test(q)) return "Recurring cleanups start at <strong>$25/week</strong>, and a one-time cleanup starts at <strong>$50</strong> (Small $50 / Medium $75 / Large $100). A deodorizing add-on is available too. Want an exact price? Tap <strong>Get a quote</strong> below — it's instant on our site.";
+  if(/town|area|cover|jackson|toms|freehold|brick|lakewood|ocean county|where/.test(q)) return "We serve <strong>Ocean County, NJ</strong> — Toms River, Jackson, Freehold, Brick, Lakewood and nearby areas. Tell us your town in the quote form and it checks your area.";
+  if(/how|work|process|do you|what happens|first/.test(q)) return "Easy: get an instant quote on our site, pick a service (recurring or one-time) and an appointment time, then check out securely. Recurring visits can be 1×, 2× or 3× per week, for 1–4 dogs. You relax — we scoop.";
+  if(/hour|open|when|time|weekend|sunday|saturday/.test(q)) return "Our hours are <strong>Mon–Fri 6–8 PM, Sat 8 AM–6 PM, Sun 8 AM–2 PM</strong>. You can still get a quote online any time, and we'll reply during business hours.";
+  if(/deodor/.test(q)) return "Yes — deodorizing is an add-on you can tick on when you get your quote, for a fresher yard after the cleanup.";
+  if(/one.time|one off|single/.test(q)) return "One-time cleanups start at $50 (Small $50 / Medium $75 / Large $100, by yard size). Get an instant quote and pick a date that works.";
+  if(/recurr|weekly|every week|subscription|regular/.test(q)) return "Recurring cleanups start at $25/week, 1×, 2× or 3× per week, for 1–4 dogs. No contracts — cancel anytime.";
+  if(/quote|book|appointment|sign up|start/.test(q)) return "Tap below to get your instant quote — it takes a minute, then you can pick a time and check out securely. 👇<br><a href='https://rlyardpatrol.netlify.app/' target='_blank' rel='noopener'>Get an instant quote →</a>";
+  if(/cancel|contract/.test(q)) return "No contracts — cancel anytime. If you need to change or cancel a booking, call or text us at <strong>848-240-1938</strong>.";
+  if(/phone|call|text|email|contact|human|person/.test(q)) return "Call or text us at <strong>848-240-1938</strong>, or email <strong>rlyardpatrol@gmail.com</strong>. Or leave your name &amp; number below and we'll follow up during business hours.";
+  if(/dog|pet|poop|scoop|yard/.test(q)) return "That's our whole job — pet waste removal, so your yard stays clean and safe. Recurring from $25/week, one-time from $50, with a deodorizing add-on. Want a quote?";
+  return "Good question! I don't have that one nailed down yet — leave your name &amp; number below and John will follow up during business hours, or call/text <strong>848-240-1938</strong>.";
+}
+document.getElementById('rl-bubble').onclick=()=>{const p=document.getElementById('rl-panel');p.classList.toggle('open');if(p.classList.contains('open')&&!msgs.children.length){say("Hi! We're Rocco &amp; Lucky 🐾 Ask us about prices, towns we cover, how a cleanup works, or hours — or tap a button below.",'bot');}};
+document.getElementById('rl-form').onsubmit=e=>{e.preventDefault();const v=document.getElementById('rl-input').value.trim();if(!v)return;say(v,'user');document.getElementById('rl-input').value='';setTimeout(()=>say(answer(v),'bot'),300);};
+document.querySelectorAll('#rl-chips button').forEach(b=>b.onclick=()=>{say(b.textContent,'user');setTimeout(()=>say(answer(b.dataset.q),'bot'),300);});
+document.getElementById('rl-lead-btn').onclick=async ()=>{
+  const n=document.getElementById('rl-name').value.trim(),p=document.getElementById('rl-phone').value.trim();
+  const done=document.getElementById('rl-lead-done');
+  if(!(n&&p)){done.innerHTML="Pop in both your name and number first — then we'll know who to bark back at.";return;}
+  done.innerHTML="Sending…";
+  try{
+    const r=await fetch('https://super-kataifi-916d2f.netlify.app/.netlify/functions/leads',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:n,phone:p,status:'new',source:'chat_bubble'})
+    });
+    if(!r.ok) throw new Error('lead post failed');
+    done.innerHTML="✅ Thanks, "+n.replace(/</g,'&lt;')+"! We'll bark back during business hours. Want a price now? <a href='https://rlyardpatrol.netlify.app/' target='_blank' rel='noopener'>Get an instant quote →</a>";
+  }catch(e){
+    done.innerHTML="Hmm, that didn't go through — please call or text us directly at <strong>848-240-1938</strong> and we'll take care of you.";
+  }
+};
+})();
+</script>
