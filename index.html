@@ -564,8 +564,7 @@
           </a>
 
           <a class="secondary" href="tel:8482401938">
-            Call 848-240-1938
-          </a>
+            Call 848-240-1938</a><div class="trust-strip" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;font-size:14px;color:#d8d5c8"><span>Veteran Owned &amp; Operated</span><span>Secure Stripe Checkout</span><span>Easy Online Booking</span><span>Serving Ocean County, NJ</span></div>
 
         </div>
 
@@ -648,7 +647,7 @@
           </p>
 
           <div class="price-note">
-            Starting at $25/week
+            Starting at $25/week — Small yard: $25/week (1 dog), $35/week (2 dogs), $45/week (3 dogs), $55/week (4 dogs). Medium yards start at $35/week; large yards start at $45/week.
           </div>
 
         </div>
@@ -669,7 +668,7 @@
           </p>
 
           <div class="price-note">
-            Starting at $50
+            Starting at $50 — Small yard $50 • Medium yard $75 • Large yard $100
           </div>
 
         </div>
@@ -958,9 +957,9 @@ const msgs=document.getElementById('rl-msgs');
 function say(text,who){const d=document.createElement('div');d.className='m '+who;d.innerHTML=text;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
 function answer(q){
   q=q.toLowerCase();
-  if(/price|cost|how much|charge/.test(q)) return "Recurring cleanups start at <strong>$25/week</strong>, and a one-time cleanup starts at <strong>$50</strong> (Small $50 / Medium $75 / Large $100). A deodorizing add-on is available too. Want an exact price? Tap <strong>Get a quote</strong> below — it's instant on our site.";
+  if(/one.time|one off|single/.test(q))return"One-time cleanups start at $50 (Small $50 / Medium $75 / Large $100). Want an exact price? Tap <strong>Get a quote</strong> below — it's instant on our site."; if(/price|cost|how much|charge/.test(q)) return "Recurring cleanups start at <strong>$25/week</strong>, and a one-time cleanup starts at <strong>$50</strong> (Small $50 / Medium $75 / Large $100). A deodorizing add-on is available too. Want an exact price? Tap <strong>Get a quote</strong> below — it's instant on our site.";
   if(/town|area|cover|jackson|toms|freehold|brick|lakewood|ocean county|where/.test(q)) return "We serve <strong>Ocean County, NJ</strong> — Toms River, Jackson, Freehold, Brick, Lakewood and nearby areas. Tell us your town in the quote form and it checks your area.";
-  if(/how|work|process|do you|what happens|first/.test(q)) return "Easy: get an instant quote on our site, pick a service (recurring or one-time) and an appointment time, then check out securely. Recurring visits can be 1×, 2× or 3× per week, for 1–4 dogs. You relax — we scoop.";
+  if(/how|work|process|do you|what happens|first/.test(q)) return "Easy: get an instant quote on our site, pick a service (recurring or one-time) and an appointment time, then check out securely. Recurring visits can be 1×, 2× or 3× per week, for 1–4 dogs. Deodorizing treatment is available as an add-on. You relax — we scoop.";
   if(/hour|open|when|time|weekend|sunday|saturday/.test(q)) return "Our hours are <strong>Mon–Fri 6–8 PM, Sat 8 AM–6 PM, Sun 8 AM–2 PM</strong>. You can still get a quote online any time, and we'll reply during business hours.";
   if(/deodor/.test(q)) return "Yes — deodorizing is an add-on you can tick on when you get your quote, for a fresher yard after the cleanup.";
   if(/one.time|one off|single/.test(q)) return "One-time cleanups start at $50 (Small $50 / Medium $75 / Large $100, by yard size). Get an instant quote and pick a date that works.";
